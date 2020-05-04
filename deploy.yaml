@@ -1,0 +1,17 @@
+---
+- hosts: nodes
+  gather_facts: false
+  become: yes
+
+  tasks:
+  - name: Make sure PostgreSQL is running
+    service:
+      name: postgresql
+      state: started
+      enabled: yes
+
+  handlers:
+  - name: restart postgresql
+    service:
+      name: postgresql
+      state: restarted

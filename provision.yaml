@@ -1,0 +1,34 @@
+---
+- hosts: nodes
+  gather_facts: false
+  become: yes
+
+  tasks:
+    - name: Add PostgreSQL signing key
+      apt_key:
+        url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+        state: present
+
+    - name: Add PostgreSQL APT repository
+      apt_repository:
+        repo: deb http://apt.postgresql.org/pub/repos/apt/ bionic-pgdg main
+        state: present
+        filename: postgresql
+
+    - name: Install required packages
+      apt:
+        update_cache: yes
+        pkg:
+          - postgresql-12
+          - postgresql-client-12
+          - libpq-dev
+          - postgresql-server-dev-12
+          - pgadmin4
+          - python3
+          - python3-pip
+
+    - name: Install python packages
+      pip:
+        name: psycopg2
+
+- import_playbook: deploy.yaml
