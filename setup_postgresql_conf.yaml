@@ -1,0 +1,49 @@
+---
+- hosts: nodes
+  gather_facts: yes
+  become: yes
+
+  tasks:
+  - name: Hardware Information
+    debug:
+      msg:
+      - "CPU: {{ ansible_processor }}"
+      - "CPU Core: {{ ansible_processor_cores }}"
+      - "RAM: {{ ansible_memtotal_mb }}"
+      - "SWAP: {{ ansible_memory_mb.swap.total }}"
+
+  - name: Generate & Install PostgreSQL config based on current hardware information
+    vars:
+      # Based on Heroku Tiers
+      # RAM equal or greater than 1GB : 20 connections
+      # RAM equal or greater than 4GB : 120 connections
+      # RAM equal or greater than 8GB : 400 connetions
+      max_connections_str: >
+        {% if ansible_memtotal_mb <= 3500 %}20{% endif %}
+        {% if ansible_memtotal_mb > 3500 and ansible_memtotal_mb < 8000 %}120{% endif %}
+        {% if ansible_memtotal_mb > 8000 %}400{% endif %}
+      max_connections: "{{ max_connections_str | int }}"
+      # Set shared_buffer to 25% of available RAM
+      shared_buffers: "{{ (0.25 * ansible_memtotal_mb) | round | int }}MB"
+      # Set effective_cache_size to 50% of available RAM
+      effective_cache_size: "{{ (0.5 * ansible_memtotal_mb) | round | int }}MB"
+      # Set work_mem for sorting data etc per connection
+      # max_connections times work_mem should not greater than 50% of total RAM
+      work_mem: "{{ ((0.5 * ansible_memtotal_mb)/max_connections|float) | round | int }}MB"
+    # debug:
+    #   msg:
+    #   - "max_connections: {{ max_connections }}"
+    #   - "shared_buffers: {{ shared_buffers }}"
+    #   - "effective_cache_size: {{ effective_cache_size }}"
+    #   - "work_mem: {{ work_mem }}"
+    template:
+      src: postgresql.conf
+      dest: /etc/postgresql/12/main/postgresql.conf
+    notify:
+      - restart postgresql
+
+  handlers:
+  - name: restart postgresql
+    service:
+      name: postgresql
+      state: restarted
