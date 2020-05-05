@@ -92,3 +92,47 @@ Run the following command to provision new PostgreSQL database:
 
     ansible-playbook -i hosts provision.yaml
 
+This command will provision & configure new postgresql database in specified
+`hosts` based on the RAM of the node.
+
+
+## Configure
+
+To configure the database, update the `postgresql.conf` and run the following
+command:
+
+    ansible-playbook -i hosts setup_postgresql_conf.yaml
+
+Becareful, this will restart your postgresql.
+
+
+## Create new database
+
+To create new database, create new `databases.yaml` with the following content:
+
+    ---
+    databases:
+        - db_name: db1
+          user_name: user1
+          user_pass: pass1
+        - db_name: db2
+          user_name: user2
+          user_pass: pass2
+
+Then run the following command:
+
+    ansible-playbook -i hosts setup_databases.yaml
+
+Now you can connect the database using created user directly inside database
+node or node in the same subnet.
+
+For example:
+
+     psql -h PRIVATE_IP -U streamers -d streamers
+
+
+## Recommended IaaS
+
+I use DigitalOcean to host my PostgreSQL database. You can use my
+[referral](https://m.do.co/c/ddb6db36549a) to get $100 for 60 days.
+

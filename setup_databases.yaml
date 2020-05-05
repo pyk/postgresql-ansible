@@ -1,0 +1,34 @@
+---
+- hosts: nodes
+  gather_facts: yes
+  become: yes
+  vars_files:
+    - databases.yaml
+
+  tasks:
+    - name: Create new databases
+      become_user: postgres
+      postgresql_db:
+        name: "{{ item.db_name }}"
+        encoding: UTF-8
+      with_items: "{{ databases }}"
+
+    - name: Create new users & grant them access to the database
+      become_user: postgres
+      postgresql_user:
+        db: "{{ item.db_name }}"
+        name: "{{ item.user_name }}"
+        password: "{{ item.user_pass }}"
+        priv: ALL
+      with_items: "{{ databases }}"
+
+    - name: Grant user to connect from specified network access
+      postgresql_pg_hba:
+        dest: /etc/postgresql/12/main/pg_hba.conf
+        contype: host
+        users: "{{ item.user_name }}"
+        source: samenet
+        databases: "{{ item.db_name }}"
+        method: md5
+      with_items: "{{ databases }}"
+
